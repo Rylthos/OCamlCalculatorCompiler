@@ -25,6 +25,7 @@ module Lexer = struct
                  | TRIG_OP of trig_T
                  | FACT_OP
                  | NUMBER of string
+                 | EOF
 
     let string_of_trig = function
         | SIN -> "SIN"
@@ -38,6 +39,7 @@ module Lexer = struct
         | TRIG_OP x -> Printf.sprintf "<TRIG_OP, %s>" (string_of_trig x)
         | FACT_OP -> "<FACT_OP>"
         | NUMBER x -> Printf.sprintf "<NUMBER, %s>" (x)
+        | EOF -> "<EOF>"
 
     let debug_msg str =
         if debug_enabled then
@@ -155,5 +157,6 @@ module Lexer = struct
         let split = String.split_on_char ' ' !lex_input_str in
         let tokens = List.map lex_string split in
         List.iter (fun x -> List.iter (fun y -> Printf.printf "%s\n" (string_of_token y)) x) tokens;
-        List.fold_left (fun x y -> x @ y) [] tokens
+        let x = List.fold_left (fun x y -> x @ y) [] tokens in
+        (x @ [EOF])
 end

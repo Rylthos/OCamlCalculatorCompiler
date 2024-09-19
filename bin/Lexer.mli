@@ -9,6 +9,7 @@ module Lexer : sig
                  | TRIG_OP of trig_T
                  | FACT_OP
                  | NUMBER of string
+                 | EOF
 
     val string_of_trig : trig_T -> string
     val string_of_token : token_T -> string
