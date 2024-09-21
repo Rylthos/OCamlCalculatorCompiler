@@ -1,3 +1,5 @@
+open Tokens
+
 module Lexer = struct
     let lex_input_str = ref ""
     let error_occured = ref false
@@ -12,32 +14,6 @@ module Lexer = struct
             (Re.Perl.re "([1-9][0-9]*|0)(\\.([0-9]*[1-9]|0)?)?(e[+-]?([1-9][0-9]*|0))?");
             Re.stop;
         ] |> Re.compile
-
-    type trig_T = SIN
-                | COS
-                | TAN
-
-    type token_T = ADD_OP
-                 | SUB_OP
-                 | POW_OP
-                 | TRIG_OP of trig_T
-                 | FACT_OP
-                 | NUMBER of string
-                 | EOF
-
-    let string_of_trig = function
-        | SIN -> "SIN"
-        | COS -> "COS"
-        | TAN -> "TAN"
-
-    let string_of_token = function
-        | ADD_OP -> "<ADD_OP>"
-        | SUB_OP -> "<SUB_OP>"
-        | POW_OP -> "<POW_OP>"
-        | TRIG_OP x -> Printf.sprintf "<TRIG_OP, %s>" (string_of_trig x)
-        | FACT_OP -> "<FACT_OP>"
-        | NUMBER x -> Printf.sprintf "<NUMBER, %s>" (x)
-        | EOF -> "<EOF>"
 
     let unexpected_symbol = fun () ->
         Printf.printf "Unexpected symbol encountered: Character: %d\n%s\n%*s^\n" !current_character !lex_input_str !current_character " ";
@@ -118,24 +94,24 @@ module Lexer = struct
             match (String.get str (get_offset ())) with
             | ' ' -> (* Whitespace *)
                 increment_forward 1
-            | '+' -> increment_forward 1; add_symbol_to_output ADD_OP
-            | '-' -> increment_forward 1; add_symbol_to_output SUB_OP
-            | '^' -> increment_forward 1; add_symbol_to_output POW_OP
-            | '!' -> increment_forward 1; add_symbol_to_output FACT_OP
+            | '+' -> increment_forward 1; add_symbol_to_output Tokens.ADD_OP
+            | '-' -> increment_forward 1; add_symbol_to_output Tokens.SUB_OP
+            | '^' -> increment_forward 1; add_symbol_to_output Tokens.POW_OP
+            | '!' -> increment_forward 1; add_symbol_to_output Tokens.FACT_OP
             | 's' -> if lex_trig str "sin" then (
-                         increment_forward 3; add_symbol_to_output (TRIG_OP SIN)
+                         increment_forward 3; add_symbol_to_output (Tokens.TRIG_OP Tokens.SIN)
                      )
             | 'c' -> if lex_trig str "cos" then (
-                         increment_forward 3; add_symbol_to_output (TRIG_OP COS)
+                         increment_forward 3; add_symbol_to_output (Tokens.TRIG_OP Tokens.COS)
                      )
             | 't' -> if lex_trig str "tan" then (
-                         increment_forward 3; add_symbol_to_output (TRIG_OP TAN)
+                         increment_forward 3; add_symbol_to_output (Tokens.TRIG_OP Tokens.TAN)
                      )
             | '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ->
                     let output = lex_number str in
                     (
                         match output with
-                        | Some n -> add_symbol_to_output (NUMBER n)
+                        | Some n -> add_symbol_to_output (Tokens.NUMBER n)
                         | None -> ()
                     )
             | c -> unexpected_character c
