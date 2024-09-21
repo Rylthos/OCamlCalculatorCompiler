@@ -96,8 +96,12 @@ module Lexer = struct
                 increment_forward 1
             | '+' -> increment_forward 1; add_symbol_to_output Tokens.ADD_OP
             | '-' -> increment_forward 1; add_symbol_to_output Tokens.SUB_OP
+            | '*' -> increment_forward 1; add_symbol_to_output Tokens.MULT_OP
+            | '/' -> increment_forward 1; add_symbol_to_output Tokens.DIV_OP
             | '^' -> increment_forward 1; add_symbol_to_output Tokens.POW_OP
             | '!' -> increment_forward 1; add_symbol_to_output Tokens.FACT_OP
+            | '(' -> increment_forward 1; add_symbol_to_output Tokens.L_PAREN
+            | ')' -> increment_forward 1; add_symbol_to_output Tokens.R_PAREN
             | 's' -> if lex_trig str "sin" then (
                          increment_forward 3; add_symbol_to_output (Tokens.TRIG_OP Tokens.SIN)
                      )
