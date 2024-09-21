@@ -6,8 +6,6 @@ module Lexer = struct
     let head = ref 0
     let forward = ref 0
 
-    let debug_enabled = true
-
     let number_regex =
         Re.seq [
             Re.start;
@@ -41,12 +39,6 @@ module Lexer = struct
         | NUMBER x -> Printf.sprintf "<NUMBER, %s>" (x)
         | EOF -> "<EOF>"
 
-    let debug_msg str =
-        if debug_enabled then
-            Printf.printf "%s\n" str
-        else
-            ()
-
     let unexpected_symbol = fun () ->
         Printf.printf "Unexpected symbol encountered: Character: %d\n%s\n%*s^\n" !current_character !lex_input_str !current_character " ";
         error_occured := true
@@ -59,8 +51,10 @@ module Lexer = struct
         forward := !forward + i;
         current_character := !current_character + i
 
+    let get_offset = fun () -> !head + !forward
+
     let lex_trig str believed =
-        let offset = !head + !forward in
+        let offset = get_offset () in
         try
             if Char.equal (String.get str (offset + 0)) (String.get believed 0) &&
                Char.equal (String.get str (offset + 1)) (String.get believed 1) &&
@@ -77,24 +71,23 @@ module Lexer = struct
         let get_substr = fun () ->
             String.sub str !head (!forward + 1)
         in
-        while (!head + !forward) < (String.length str) && (!continue_loop && not !error) do
+        while (get_offset ()) < (String.length str) && (!continue_loop && not !error) do
             (*
                 Assume that head -> forward is a valid number
                 forward + 1 is next character
             *)
-            let current_char = String.get str !forward in
+            let current_char = String.get str (get_offset ()) in
             match current_char with
             | '.' -> (* Decimal *)
                 increment_forward 1
             | 'e' -> (* Exponent. Possible +- *)
                 (
                     increment_forward 1;
-                    let next_char = String.get str !forward in
+                    let next_char = String.get str (get_offset ()) in
                     match next_char with
                     | '+' -> increment_forward 1
                     | '-' -> increment_forward 1
-                    | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ->
-                        ()
+                    | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' -> ()
                     | _ -> unexpected_symbol (); error := true
                 )
             | '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ->
@@ -115,9 +108,7 @@ module Lexer = struct
         head := 0;
         forward := 0;
         let outputs = ref [] in
-        let get_offset = fun () -> !head + !forward in
         let add_symbol_to_output sym =
-            debug_msg (Printf.sprintf "Adding symbol %s" (string_of_token sym));
             outputs := sym :: !outputs;
             head := get_offset ();
             forward := 0
@@ -155,8 +146,9 @@ module Lexer = struct
     let lexer input_string =
         lex_input_str := String.trim input_string;
         let split = String.split_on_char ' ' !lex_input_str in
+        (* List.iter (fun x -> Printf.printf "%s" x) split; *)
         let tokens = List.map lex_string split in
-        List.iter (fun x -> List.iter (fun y -> Printf.printf "%s\n" (string_of_token y)) x) tokens;
+        (* List.iter (fun x -> List.iter (fun y -> Printf.printf "%s\n" (string_of_token y)) x) tokens; *)
         let x = List.fold_left (fun x y -> x @ y) [] tokens in
         (x @ [EOF])
 end

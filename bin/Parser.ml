@@ -12,12 +12,24 @@ module Parser = struct
                          | G
                          | H
 
+    type tree_T = Leaf of Lexer.token_T
+                | SingleNode of Lexer.token_T * tree_T
+                | DoubleNode of Lexer.token_T * tree_T * tree_T
+
     exception Reduce_error
+    exception Parse_error
 
     let action_tbl = Hashtbl.create 100
     let goto_tbl = Hashtbl.create 100
 
     let parser_stack = ref []
+    let tree_stack = ref []
+
+    let rec string_of_tree tree =
+        match tree with
+        | Leaf t -> Lexer.string_of_token t
+        | SingleNode (h, l) -> Printf.sprintf "(%s, %s)" (Lexer.string_of_token h) (string_of_tree l)
+        | DoubleNode (h, l, r) -> Printf.sprintf "(%s, %s, %s)" (Lexer.string_of_token h) (string_of_tree l) (string_of_tree r)
 
     let add_action_entry state token action =
         Hashtbl.add action_tbl (state, token) action
@@ -39,25 +51,73 @@ module Parser = struct
             pop_stack (num - 1)
         )
 
+    let rec drop lst num =
+        if num = 0 then lst
+        else
+            drop (List.tl lst) (num - 1)
 
-    let reduce state =
+    let reduce state (inputs : Lexer.token_T list ref) =
         let add_non_terminal non_terminal =
             let x = top_stack () in
             push_stack (Hashtbl.find goto_tbl (x, non_terminal))
         in
-        Printf.printf "Reduce: ";
+
+        (* Printf.printf "Reduce: "; *)
         match state with
-        |  1 -> pop_stack 1; add_non_terminal E; Printf.printf ("E -> F\n");
-        |  2 -> pop_stack 3; add_non_terminal E; Printf.printf ("E -> E + F\n")
-        |  3 -> pop_stack 3; add_non_terminal E; Printf.printf ("E -> E - F\n")
-        |  4 -> pop_stack 3; add_non_terminal F; Printf.printf ("F -> T ^ F\n")
-        |  5 -> pop_stack 1; add_non_terminal F; Printf.printf ("F -> T\n")
-        |  6 -> pop_stack 2; add_non_terminal T; Printf.printf ("T -> trig T\n")
-        |  7 -> pop_stack 2; add_non_terminal T; Printf.printf ("T -> - T\n")
-        |  8 -> pop_stack 1; add_non_terminal T; Printf.printf ("T- > G\n")
-        |  9 -> pop_stack 2; add_non_terminal G; Printf.printf ("G -> G !\n")
-        | 10 -> pop_stack 1; add_non_terminal G; Printf.printf ("G -> H\n")
-        | 11 -> pop_stack 1; add_non_terminal H; Printf.printf ("H -> number\n")
+        |  1 -> pop_stack 1; add_non_terminal E;
+            (* Printf.printf ("E -> F\n"); *)
+
+        |  2 -> pop_stack 3; add_non_terminal E;
+            (* Printf.printf ("E -> E + F\n"); *)
+            let left = List.nth !tree_stack 1 in
+            let right = List.nth !tree_stack 0 in
+            tree_stack := (DoubleNode (Lexer.ADD_OP, left, right)) :: (drop !tree_stack 2);
+            inputs := List.tl !inputs;
+
+        |  3 -> pop_stack 3; add_non_terminal E;
+            (* Printf.printf ("E -> E - F\n"); *)
+            let left = List.nth !tree_stack 1 in
+            let right = List.nth !tree_stack 0 in
+            tree_stack := (DoubleNode (Lexer.SUB_OP, left, right)) :: (drop !tree_stack 2);
+
+        |  4 -> pop_stack 3; add_non_terminal F;
+            (* Printf.printf ("F -> T ^ F\n"); *)
+            let left = List.nth !tree_stack 1 in
+            let right = List.nth !tree_stack 0 in
+            tree_stack := (DoubleNode (Lexer.POW_OP, left, right)) :: (drop !tree_stack 2);
+
+        |  5 -> pop_stack 1; add_non_terminal F;
+            (* Printf.printf ("F -> T\n") *)
+
+        |  6 -> pop_stack 2; add_non_terminal T;
+            (* Printf.printf ("T -> trig T\n"); *)
+            let head = List.hd !tree_stack in
+            tree_stack := (SingleNode (List.nth !inputs 0, head)) :: (List.tl !tree_stack);
+            inputs := List.tl !inputs;
+
+        |  7 -> pop_stack 2; add_non_terminal T;
+            (* Printf.printf ("T -> - T\n"); *)
+            let head = List.hd !tree_stack in
+            tree_stack := (SingleNode (Lexer.SUB_OP, head)) :: (List.tl !tree_stack);
+            inputs := List.tl !inputs
+
+        |  8 -> pop_stack 1; add_non_terminal T;
+            (* Printf.printf ("T -> G\n") *)
+
+        |  9 -> pop_stack 2; add_non_terminal G;
+            (* Printf.printf ("G -> G !\n"); *)
+            let head = List.hd !tree_stack in
+            tree_stack := (SingleNode (Lexer.FACT_OP, head)) :: (List.tl !tree_stack);
+            inputs := List.tl !inputs
+
+        | 10 -> pop_stack 1; add_non_terminal G;
+            (* Printf.printf ("G -> H\n") *)
+
+        | 11 -> pop_stack 1; add_non_terminal H;
+            (* Printf.printf ("H -> number\n"); *)
+            tree_stack := (Leaf (List.nth !inputs 0)) :: !tree_stack;
+            inputs := List.tl !inputs
+
         | _ -> raise Reduce_error
 
     let token_to_generic token =
@@ -69,9 +129,9 @@ module Parser = struct
     let generate_action_table = fun () ->
         add_action_entry 0 (Lexer.NUMBER "")   (SHIFT 8);
         add_action_entry 0 (Lexer.ADD_OP)      (ERROR);
-        add_action_entry 0 (Lexer.SUB_OP)      (SHIFT 8);
+        add_action_entry 0 (Lexer.SUB_OP)      (SHIFT 5);
         add_action_entry 0 (Lexer.POW_OP)      (ERROR);
-        add_action_entry 0 (Lexer.TRIG_OP SIN) (SHIFT 8);
+        add_action_entry 0 (Lexer.TRIG_OP SIN) (SHIFT 4);
         add_action_entry 0 (Lexer.FACT_OP)     (ERROR);
         add_action_entry 0 (Lexer.EOF)         (ERROR);
 
@@ -99,7 +159,7 @@ module Parser = struct
         add_action_entry 3 (Lexer.FACT_OP)     (ERROR);
         add_action_entry 3 (Lexer.EOF)         (REDUCE 5);
 
-        add_action_entry 4 (Lexer.NUMBER "")   (SHIFT 5);
+        add_action_entry 4 (Lexer.NUMBER "")   (SHIFT 8);
         add_action_entry 4 (Lexer.ADD_OP)      (ERROR);
         add_action_entry 4 (Lexer.SUB_OP)      (SHIFT 5);
         add_action_entry 4 (Lexer.POW_OP)      (ERROR);
@@ -330,9 +390,10 @@ module Parser = struct
 
     let generate_parse_tree list =
         generate_tables();
-        parser_stack := [0];
+        parser_stack := [0]; (* Initial State *)
 
         let inputs = ref list in
+        let cached_inputs = ref [] in
         let next_symbol = fun () ->
             let sym = List.hd (!inputs) in
             inputs := List.tl (!inputs);
@@ -340,6 +401,7 @@ module Parser = struct
         in
 
         let continue_loop = ref true in
+        let error = ref false in
         let a = ref (next_symbol ()) in
         while !continue_loop do
             let state = top_stack () in
@@ -349,14 +411,24 @@ module Parser = struct
             | SHIFT t ->
                 (* Printf.printf "Shift <%s, %d>\n" (Lexer.string_of_token !a) t; *)
                 push_stack t;
+                cached_inputs := !a :: !cached_inputs;
                 a := next_symbol ()
             | REDUCE s ->
-                    (* Printf.printf "Reduce <%s, %d>\n" (Lexer.string_of_token !a) s; *)
-                reduce s
+                (* Printf.printf "Reduce <%s, %d>\n" (Lexer.string_of_token !a) s; *)
+                (* (Printf.printf "B Inputs: <"); List.iter (fun x -> Printf.printf "%s, " (Lexer.string_of_token x)) !cached_inputs; Printf.printf ">\n"; *)
+                reduce s cached_inputs;
+                (* (Printf.printf "A Inputs: <"); List.iter (fun x -> Printf.printf "%s, " (Lexer.string_of_token x)) !cached_inputs; Printf.printf ">\n" *)
             | ACCEPT ->
-                continue_loop := false
+                continue_loop := false;
             | ERROR ->
-                continue_loop := false; Printf.printf "Error\n"
-        done
+                continue_loop := false; error := true;
+        done;
+        if not !error then (
+            Printf.printf "Parsed Successfully\n";
+            List.hd !tree_stack
+        ) else (
+            Printf.printf "An error occured\n";
+            raise Parse_error
+        )
 
 end

@@ -12,4 +12,6 @@ let () =
     Arg.parse speclist anon_fun usage_msg;
     Printf.printf "%s\n" !input_string;
     let tokens = Lexer.lexer !input_string in
-    Parser.generate_parse_tree tokens
+    let tree = Parser.generate_parse_tree tokens in
+    Printf.printf "%s" (Parser.string_of_tree tree);
+    ()
