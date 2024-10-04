@@ -371,16 +371,16 @@ module Parser = struct
         add_action_entry 17 (Tokens.EOF)         (REDUCE 10);
 
         add_action_entry 18 (Tokens.NUMBER "")   (ERROR    );
-        add_action_entry 18 (Tokens.ADD_OP)      (REDUCE  9);
-        add_action_entry 18 (Tokens.SUB_OP)      (REDUCE  9);
-        add_action_entry 18 (Tokens.MULT_OP)     (REDUCE  9);
-        add_action_entry 18 (Tokens.DIV_OP)      (REDUCE  9);
-        add_action_entry 18 (Tokens.POW_OP)      (REDUCE  9);
-        add_action_entry 18 (Tokens.FACT_OP)     (ERROR    );
+        add_action_entry 18 (Tokens.ADD_OP)      (REDUCE 12);
+        add_action_entry 18 (Tokens.SUB_OP)      (REDUCE 12);
+        add_action_entry 18 (Tokens.MULT_OP)     (REDUCE 12);
+        add_action_entry 18 (Tokens.DIV_OP)      (REDUCE 12);
+        add_action_entry 18 (Tokens.POW_OP)      (REDUCE 12);
+        add_action_entry 18 (Tokens.FACT_OP)     (REDUCE 12);
         add_action_entry 18 (Tokens.TRIG_OP SIN) (ERROR    );
         add_action_entry 18 (Tokens.L_PAREN)     (ERROR    );
-        add_action_entry 18 (Tokens.R_PAREN)     (REDUCE  9);
-        add_action_entry 18 (Tokens.EOF)         (REDUCE  9);
+        add_action_entry 18 (Tokens.R_PAREN)     (REDUCE 12);
+        add_action_entry 18 (Tokens.EOF)         (REDUCE 12);
 
         add_action_entry 19 (Tokens.NUMBER "")   (ERROR    );
         add_action_entry 19 (Tokens.ADD_OP)      (SHIFT  11);
