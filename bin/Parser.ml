@@ -64,83 +64,79 @@ module Parser = struct
             push_stack (Hashtbl.find goto_tbl (x, non_terminal))
         in
 
-        (* Printf.printf "Reduce: "; *)
         match state with
         |  1 -> pop_stack 3; add_non_terminal E;
-            Printf.printf ("E -> E + F\n");
+            (* Printf.printf ("E -> E + F\n"); *)
             let left = List.nth !tree_stack 1 in
             let right = List.nth !tree_stack 0 in
             tree_stack := (DoubleNode (Tokens.ADD_OP, left, right)) :: (drop !tree_stack 2);
             inputs := List.tl !inputs;
 
         |  2 -> pop_stack 3; add_non_terminal E;
-            Printf.printf ("E -> E - F\n");
+            (* Printf.printf ("E -> E - F\n"); *)
             let left = List.nth !tree_stack 1 in
             let right = List.nth !tree_stack 0 in
             tree_stack := (DoubleNode (Tokens.SUB_OP, left, right)) :: (drop !tree_stack 2);
             inputs := List.tl !inputs;
 
         |  3 -> pop_stack 1; add_non_terminal E;
-            Printf.printf ("E -> F\n");
+            (* Printf.printf ("E -> F\n"); *)
 
         |  4 -> pop_stack 3; add_non_terminal F;
-            Printf.printf ("F -> F * G\n");
+            (* Printf.printf ("F -> F * G\n"); *)
             let left = List.nth !tree_stack 1 in
             let right = List.nth !tree_stack 0 in
             tree_stack := (DoubleNode (Tokens.MULT_OP, left, right)) :: (drop !tree_stack 2);
 
         |  5 -> pop_stack 3; add_non_terminal F;
-            Printf.printf ("F -> F / G\n");
+            (* Printf.printf ("F -> F / G\n"); *)
             let left = List.nth !tree_stack 1 in
             let right = List.nth !tree_stack 0 in
             tree_stack := (DoubleNode (Tokens.DIV_OP, left, right)) :: (drop !tree_stack 2);
 
         |  6 -> pop_stack 1; add_non_terminal F;
-            Printf.printf ("F -> G\n")
+            (* Printf.printf ("F -> G\n") *)
 
         |  7 -> pop_stack 3; add_non_terminal G;
-            Printf.printf ("G -> H ^ G\n");
+            (* Printf.printf ("G -> H ^ G\n"); *)
             let left = List.nth !tree_stack 1 in
             let right = List.nth !tree_stack 0 in
             tree_stack := (DoubleNode (Tokens.POW_OP, left, right)) :: (drop !tree_stack 2);
 
         |  8 -> pop_stack 1; add_non_terminal G;
-            Printf.printf ("G -> H\n")
+            (* Printf.printf ("G -> H\n") *)
 
         |  9 -> pop_stack 2; add_non_terminal H;
-            Printf.printf ("H -> trig H\n");
+            (* Printf.printf ("H -> trig H\n"); *)
             let head = List.hd !tree_stack in
             tree_stack := (SingleNode (List.nth !inputs 0, head)) :: (List.tl !tree_stack);
             inputs := List.tl !inputs;
 
         | 10 -> pop_stack 2; add_non_terminal H;
-            Printf.printf ("H -> - H\n");
+            (* Printf.printf ("H -> - H\n"); *)
             let head = List.hd !tree_stack in
             tree_stack := (SingleNode (Tokens.SUB_OP, head)) :: (List.tl !tree_stack);
             inputs := List.tl !inputs
 
         | 11 -> pop_stack 1; add_non_terminal H;
-            Printf.printf ("H -> I\n")
+            (* Printf.printf ("H -> I\n") *)
 
         | 12 -> pop_stack 2; add_non_terminal I;
-            Printf.printf ("I -> I !\n");
+            (* Printf.printf ("I -> I !\n"); *)
             let head = List.hd !tree_stack in
             tree_stack := (SingleNode (Tokens.FACT_OP, head)) :: (List.tl !tree_stack);
             inputs := List.tl !inputs
 
         | 13 -> pop_stack 1; add_non_terminal I;
-            Printf.printf ("I -> J\n");
+            (* Printf.printf ("I -> J\n"); *)
 
         | 14 -> pop_stack 3; add_non_terminal J;
-            Printf.printf ("J -> ( E )\n");
+            (* Printf.printf ("J -> ( E )\n"); *)
             inputs := (List.hd (drop !inputs 1)) :: (drop !inputs 3)
-            (* let middle = List.nth !tree_stack 1 in *)
-            (* tree_stack := middle :: (drop !tree_stack 1); *)
 
         | 15 -> pop_stack 1; add_non_terminal J;
-            Printf.printf ("J -> number\n");
+            (* Printf.printf ("J -> number\n"); *)
             tree_stack := (Leaf (List.nth !inputs 0)) :: !tree_stack;
-            inputs := List.tl !inputs
 
         | _ -> raise Reduce_error
 
@@ -674,19 +670,14 @@ module Parser = struct
         let a = ref (next_symbol ()) in
         while !continue_loop do
             let state = top_stack () in
-            Printf.printf "Find action_tbl %d %s\n" state (Tokens.string_of_token !a);
             let action = Hashtbl.find action_tbl (state, token_to_generic !a) in
             match action with
             | SHIFT t ->
-                Printf.printf "Shift <%s, %d>\n" (Tokens.string_of_token !a) t;
                 push_stack t;
                 cached_inputs := !a :: !cached_inputs;
                 a := next_symbol ()
             | REDUCE s ->
-                Printf.printf "Reduce <%s, %d>\n" (Tokens.string_of_token !a) s;
-                (Printf.printf "B Inputs: <"); List.iter (fun x -> Printf.printf "%s, " (Tokens.string_of_token x)) !cached_inputs; Printf.printf ">\n";
                 reduce s cached_inputs;
-                (Printf.printf "A Inputs: <"); List.iter (fun x -> Printf.printf "%s, " (Tokens.string_of_token x)) !cached_inputs; Printf.printf ">\n"
             | ACCEPT ->
                 continue_loop := false;
             | ERROR ->

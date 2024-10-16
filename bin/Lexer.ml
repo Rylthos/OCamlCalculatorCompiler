@@ -126,9 +126,7 @@ module Lexer = struct
     let lexer input_string =
         lex_input_str := String.trim input_string;
         let split = String.split_on_char ' ' !lex_input_str in
-        (* List.iter (fun x -> Printf.printf "%s" x) split; *)
         let tokens = List.map lex_string split in
-        (* List.iter (fun x -> List.iter (fun y -> Printf.printf "%s\n" (string_of_token y)) x) tokens; *)
         let x = List.fold_left (fun x y -> x @ y) [] tokens in
         (x @ [EOF])
 end
